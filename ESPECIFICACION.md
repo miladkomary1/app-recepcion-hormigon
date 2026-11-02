@@ -27,6 +27,7 @@
 | Hora de llegada a obra | 10:58 |
 | Metros cúbicos (m³) | 7,5 |
 | Cono de Abrams medido (cm) | 8 |
+| Temperatura ambiente (°C) | 22 |
 
 ---
 
@@ -50,7 +51,13 @@
 - **RECHAZAR** si hay discrepancia.
   - Motivo: *"Tipo de hormigón no coincide (albarán: X, pedido: Y)"*
 
-> Un camión se **RECHAZA** si falla **cualquiera** de las tres reglas. Se indica el motivo de cada regla que falla.
+### Regla 4 — Temperatura ambiente
+- **Rango válido:** 5 °C ≤ temperatura ≤ 35 °C.
+- **ACEPTAR** si `5 ≤ temperatura ≤ 35`
+- **RECHAZAR** si `temperatura < 5` o `temperatura > 35`
+  - Motivo: *"Temperatura fuera de rango (X °C)"*
+
+> Un camión se **RECHAZA** si falla **cualquiera** de las cuatro reglas. Se indica el motivo de cada regla que falla.
 
 ---
 
@@ -84,11 +91,12 @@ El historial de la jornada se guarda en **`localStorage`** del navegador del mó
 
 ## 7. Casos de prueba
 
-| # | Pedido del día | Albarán | T. salida | T. llegada | Cono medido | Resultado esperado |
-|---|---|---|---|---|---|---|
-| P1 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 08:00 | 09:00 | 9 cm | ✅ ACEPTADO (60 min, cono OK, tipo OK) |
-| P2 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 08:00 | 09:31 | 9 cm | ❌ RECHAZADO — Tiempo excedido (91 min > 90 min) |
-| P3 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 10:00 | 10:45 | 6 cm | ❌ RECHAZADO — Cono fuera de tolerancia (medido 6 cm, pedido 9 cm, diferencia 3 cm > 2 cm) |
-| P4 | HA-25/B/20/IIa, cono 9 cm | HA-30/B/20/IIa | 10:00 | 10:45 | 9 cm | ❌ RECHAZADO — Tipo de hormigón no coincide (albarán: HA-30/B/20/IIa, pedido: HA-25/B/20/IIa) |
-| P5 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 07:30 | 09:02 | 11 cm | ❌ RECHAZADO — **Solo** por tiempo (92 min > 90 min). Cono: diferencia = 11 − 9 = 2 cm ≤ 2 cm → ACEPTADO. Tipo: coincide → ACEPTADO. |
-| P6 | HA-25/B/20/IIa, cono 9 cm | **ha-25/b/20/iia** | 09:00 | 09:50 | 10 cm | ✅ ACEPTADO — Tipo OK (normalizado coincide), tiempo 50 min ≤ 90 min, cono diferencia 1 cm ≤ 2 cm |
+| # | Pedido del día | Albarán | T. salida | T. llegada | Cono medido | Temperatura | Resultado esperado |
+|---|---|---|---|---|---|---|---|
+| P1 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 08:00 | 09:00 | 9 cm | 20 °C | ✅ ACEPTADO (60 min, cono OK, tipo OK, temperatura OK) |
+| P2 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 08:00 | 09:31 | 9 cm | 20 °C | ❌ RECHAZADO — Tiempo excedido (91 min > 90 min) |
+| P3 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 10:00 | 10:45 | 6 cm | 20 °C | ❌ RECHAZADO — Cono fuera de tolerancia (medido 6 cm, pedido 9 cm, diferencia 3 cm > 2 cm) |
+| P4 | HA-25/B/20/IIa, cono 9 cm | HA-30/B/20/IIa | 10:00 | 10:45 | 9 cm | 20 °C | ❌ RECHAZADO — Tipo de hormigón no coincide (albarán: HA-30/B/20/IIa, pedido: HA-25/B/20/IIa) |
+| P5 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 07:30 | 09:02 | 11 cm | 20 °C | ❌ RECHAZADO — **Solo** por tiempo (92 min > 90 min). Cono: diferencia = 11 − 9 = 2 cm ≤ 2 cm → ACEPTADO. Tipo: coincide → ACEPTADO. Temperatura OK. |
+| P6 | HA-25/B/20/IIa, cono 9 cm | **ha-25/b/20/iia** | 09:00 | 09:50 | 10 cm | 25 °C | ✅ ACEPTADO — Tipo OK (normalizado coincide), tiempo 50 min ≤ 90 min, cono diferencia 1 cm ≤ 2 cm, temperatura OK |
+| P7 | HA-25/B/20/IIa, cono 9 cm | HA-25/B/20/IIa | 08:00 | 09:00 | 9 cm | **3 °C** | ❌ RECHAZADO — Temperatura fuera de rango (3 °C < 5 °C) |
