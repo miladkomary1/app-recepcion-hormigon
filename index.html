@@ -202,9 +202,6 @@
 
     <label for="a-cono">Cono de Abrams medido (cm)</label>
     <input type="number" id="a-cono" placeholder="ej. 8" min="0" max="30" step="1" />
-
-    <label for="a-temp">Temperatura ambiente (°C)</label>
-    <input type="number" id="a-temp" placeholder="ej. 22" min="-20" max="60" step="1" />
   </div>
 
   <div id="albaran-error" style="color:var(--rojo);margin-bottom:10px;font-weight:600;display:none;"></div>
@@ -256,8 +253,6 @@
 ──────────────────────────────────────────────────────── */
 const TIEMPO_MAX_MIN = 90;            // Regla 1: minutos máximos
 const TOLERANCIA_CONO_CM = 2;        // Regla 2: tolerancia cono (±)
-const TEMP_MIN_C = 5;                // Regla 4: temperatura mínima
-const TEMP_MAX_C = 35;               // Regla 4: temperatura máxima
 const CLAVE_ESTADO = "recepcion_estado"; // clave localStorage
 
 /* ────────────────────────────────────────────────────────
@@ -288,7 +283,7 @@ function cargarEstado() {
    Recibe los datos del albarán y el pedido del día.
    Devuelve { aceptado: bool, motivos: string[] }
 ──────────────────────────────────────────────────────── */
-function evaluarReglas({ tipoAlbaran, tiposPedido, conoMedido, conoPedido, minutosTransporte, temperatura }) {
+function evaluarReglas({ tipoAlbaran, tiposPedido, conoMedido, conoPedido, minutosTransporte }) {
   const motivos = [];
 
   // Regla 1 — Tiempo máximo de transporte
@@ -311,13 +306,6 @@ function evaluarReglas({ tipoAlbaran, tiposPedido, conoMedido, conoPedido, minut
   if (normalizar(tipoAlbaran) !== normalizar(tiposPedido)) {
     motivos.push(
       `Tipo de hormigón no coincide (albarán: ${tipoAlbaran}, pedido: ${tiposPedido})`
-    );
-  }
-
-  // Regla 4 — Temperatura ambiente (5 °C ≤ temp ≤ 35 °C)
-  if (temperatura < TEMP_MIN_C || temperatura > TEMP_MAX_C) {
-    motivos.push(
-      `Temperatura fuera de rango (${temperatura} °C)`
     );
   }
 
@@ -394,7 +382,6 @@ function evaluarAlbaran() {
   const llegada = document.getElementById("a-llegada").value;
   const m3raw   = document.getElementById("a-m3").value;
   const conoRaw = document.getElementById("a-cono").value;
-  const tempRaw = document.getElementById("a-temp").value;
 
   // Validaciones básicas
   if (!numero)  { mostrarError("albaran-error", "Introduce el número de albarán."); return; }
@@ -403,16 +390,13 @@ function evaluarAlbaran() {
   if (!llegada) { mostrarError("albaran-error", "Introduce la hora de llegada a obra."); return; }
   if (m3raw === "") { mostrarError("albaran-error", "Introduce los m³."); return; }
   if (conoRaw === "") { mostrarError("albaran-error", "Introduce el cono de Abrams medido."); return; }
-  if (tempRaw === "") { mostrarError("albaran-error", "Introduce la temperatura ambiente."); return; }
 
   const m3         = parseFloat(m3raw);
   const conoMedido = parseFloat(conoRaw);
-  const temperatura = parseFloat(tempRaw);
   const minutos    = calcularMinutos(salida, llegada);
 
   if (isNaN(m3) || m3 <= 0) { mostrarError("albaran-error", "Los m³ deben ser un número positivo."); return; }
   if (isNaN(conoMedido) || conoMedido < 0) { mostrarError("albaran-error", "El cono medido debe ser un número ≥ 0."); return; }
-  if (isNaN(temperatura)) { mostrarError("albaran-error", "La temperatura debe ser un número."); return; }
 
   // Aplicar reglas
   const { aceptado, motivos } = evaluarReglas({
@@ -420,12 +404,11 @@ function evaluarAlbaran() {
     tiposPedido:     estado.pedidoTipo,
     conoMedido:      conoMedido,
     conoPedido:      estado.pedidoCono,
-    minutosTransporte: minutos,
-    temperatura:     temperatura
+    minutosTransporte: minutos
   });
 
   // Guardar en historial
-  const registro = { numero, tipo, salida, llegada, m3, conoMedido, temperatura, minutos, aceptado, motivos };
+  const registro = { numero, tipo, salida, llegada, m3, conoMedido, minutos, aceptado, motivos };
   estado.historial.push(registro);
   guardarEstado();
 
@@ -466,7 +449,6 @@ function mostrarResultado(reg) {
     <div class="resumen-fila"><span class="resumen-label">m³</span><span class="resumen-valor">${reg.m3}</span></div>
     <div class="resumen-fila"><span class="resumen-label">Cono medido</span><span class="resumen-valor">${reg.conoMedido} cm</span></div>
     <div class="resumen-fila"><span class="resumen-label">Cono pedido</span><span class="resumen-valor">${estado.pedidoCono} cm</span></div>
-    <div class="resumen-fila"><span class="resumen-label">Temperatura ambiente</span><span class="resumen-valor">${reg.temperatura} °C</span></div>
   `;
 
   mostrar("pant-resultado");
@@ -496,7 +478,7 @@ function irAHistorial() {
             <span>#${idx} · Albarán ${reg.numero}</span>
             <span class="hist-badge ${cls}">${badgeTxt}</span>
           </div>
-          <div class="hist-detalle">${reg.tipo} · ${reg.salida}→${reg.llegada} (${reg.minutos} min) · ${reg.m3} m³ · cono ${reg.conoMedido} cm · ${reg.temperatura} °C</div>
+          <div class="hist-detalle">${reg.tipo} · ${reg.salida}→${reg.llegada} (${reg.minutos} min) · ${reg.m3} m³ · cono ${reg.conoMedido} cm</div>
           ${motivosTxt}
         </div>`;
     });
@@ -523,7 +505,7 @@ function exportarCSV() {
   const cabecera = [
     "Orden", "Nº Albarán", "Hormigón Albarán", "Hormigón Pedido",
     "Cono Pedido (cm)", "Hora Salida", "Hora Llegada",
-    "Tiempo (min)", "m³", "Cono Medido (cm)", "Temperatura (°C)", "Resultado", "Motivos"
+    "Tiempo (min)", "m³", "Cono Medido (cm)", "Resultado", "Motivos"
   ];
 
   const filas = estado.historial.map((reg, i) => [
@@ -537,7 +519,6 @@ function exportarCSV() {
     reg.minutos,
     reg.m3,
     reg.conoMedido,
-    reg.temperatura,
     reg.aceptado ? "ACEPTADO" : "RECHAZADO",
     reg.motivos.join(" | ")
   ]);
@@ -577,7 +558,7 @@ function siguienteAlbaran() {
 }
 
 function limpiarFormularioAlbaran() {
-  ["a-numero", "a-tipo", "a-salida", "a-llegada", "a-m3", "a-cono", "a-temp"]
+  ["a-numero", "a-tipo", "a-salida", "a-llegada", "a-m3", "a-cono"]
     .forEach(id => { document.getElementById(id).value = ""; });
   ocultarError("albaran-error");
 }
